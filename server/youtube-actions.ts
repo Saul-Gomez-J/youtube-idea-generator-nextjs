@@ -61,10 +61,11 @@ async function fetchVideoDetails(videoIds: string[]): Promise<YouTubeVideo[]> {
 
   for (const batch of batches) {
     try {
-      const response = await youtube.videos.list({
-        part: "snippet,statistics",
-        id: batch.join(','),
-      });
+      const params: youtube_v3.Params$Resource$Videos$List = {
+        part: ["snippet", "statistics"],
+        id: batch.join(',')
+      };
+      const response = await youtube.videos.list(params);
 
       const videos = (
         response.data.items?.map((item) => ({
