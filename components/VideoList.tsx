@@ -64,6 +64,7 @@ export default function VideoList({
         description: "El video ha sido eliminado exitosamente",
       });
     } catch (error) {
+      console.error( "Error al eliminar el video ", error);
       toast({
         title: "Error",
         description: "No se pudo eliminar el video",
