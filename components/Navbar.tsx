@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@clerk/nextjs";
 import { Button } from "./ui/button";
 import { SettingsModal } from "./SettingsModal";
+import Image from 'next/image';
+
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -17,11 +19,13 @@ export default function Navbar() {
       <div className="py-8">
         <div className="flex justify-between items-center">
         <Link href="/" className="flex items-center space-x-1">
-      <img
-        src="/logo-s.png"
-        alt="Logo"
-        className="h-16 w-auto"
-      />
+        <Image
+          src="/logo-s.png"
+          alt="Logo"
+          width={64} // Añade el tamaño en píxeles (16 * 4 en tailwind = 64px)
+          height={64} // O ajusta según el diseño deseado
+          className="h-16 w-auto"
+        />
     </Link>
 
           {isSignedIn && (
