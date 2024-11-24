@@ -6,6 +6,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/ui/toaster"
+import { Footer } from "@/components/footer";
 
 const lato = Lato({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         </div>
+        <Footer />
       </body>
     </html>  
   </ClerkProvider>

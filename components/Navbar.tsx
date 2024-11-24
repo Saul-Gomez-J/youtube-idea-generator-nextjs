@@ -65,7 +65,7 @@ export default function Navbar() {
           {!isSignedIn && (
             <Link href="/videos">
               <Button className="font-semibold text-white bg-red-500 hover:bg-red-600">
-                Get Started Now
+                Comienza ahora
               </Button>
             </Link>
           )}
