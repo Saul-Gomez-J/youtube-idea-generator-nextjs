@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from 'next/link';
 
 export default function PrivacyPolicy() {
   return (
@@ -7,7 +7,7 @@ export default function PrivacyPolicy() {
       <p className="mb-4"><strong>Fecha de entrada en vigor:</strong> 24 de noviembre de 2024</p>
       
       <p className="mb-4">
-        La presente Política de Privacidad describe cómo <strong>Saul</strong> ("nosotros", "nuestro" o "nos") recopila, utiliza y protege la información personal de los usuarios ("usted" o "usuario") de la aplicación <strong>GeneradorIdeasYT</strong> ("la aplicación" o "el servicio").
+        La presente Política de Privacidad describe cómo <strong>Saul</strong> (&quot;nosotros&quot;, &quot;nuestro&quot; o &quot;nos&quot;) recopila, utiliza y protege la información personal de los usuarios (&quot;usted&quot; o &quot;usuario&quot;) de la aplicación <strong>GeneradorIdeasYT</strong> (&quot;la aplicación&quot; o &quot;el servicio&quot;).
       </p>
       
       <p className="mb-6">
@@ -101,6 +101,5 @@ export default function PrivacyPolicy() {
         Volver a la página principal
       </Link>
     </div>
-  )
+  );
 }
-

@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from 'next/link';
 
 export default function TermsOfService() {
   return (
@@ -7,7 +7,7 @@ export default function TermsOfService() {
       <p className="mb-4"><strong>Fecha de entrada en vigor:</strong> 24 de noviembre de 2024</p>
       
       <p className="mb-6">
-        Bienvenido a GeneradorIdeasYT ("la aplicación" o "el servicio"), propiedad y operado por Saul ("nosotros", "nuestro" o "nos"). Al acceder y utilizar nuestro servicio, usted acepta cumplir con estos Términos y Condiciones.
+        Bienvenido a GeneradorIdeasYT (&quot;la aplicación&quot; o &quot;el servicio&quot;), propiedad y operado por Saul (&quot;nosotros&quot;, &quot;nuestro&quot; o &quot;nos&quot;). Al acceder y utilizar nuestro servicio, usted acepta cumplir con estos Términos y Condiciones.
       </p>
 
       <h2 className="text-2xl font-semibold mt-8 mb-4">1. Descripción del Servicio</h2>
@@ -73,7 +73,7 @@ export default function TermsOfService() {
       <h2 className="text-2xl font-semibold mt-8 mb-4">8. Limitación de Responsabilidad</h2>
       <h3 className="text-xl font-semibold mt-6 mb-2">8.1 Exención de Garantías</h3>
       <p className="mb-4">
-        El servicio se proporciona "tal cual" y "según disponibilidad", sin garantías de ningún tipo, ya sean expresas o implícitas.
+        El servicio se proporciona &quot;tal cual&quot; y &quot;según disponibilidad&quot;, sin garantías de ningún tipo, ya sean expresas o implícitas.
       </p>
 
       <h3 className="text-xl font-semibold mt-6 mb-2">8.2 Limitación de Daños</h3>
@@ -117,6 +117,5 @@ export default function TermsOfService() {
         Volver a la página principal
       </Link>
     </div>
-  )
+  );
 }
-
