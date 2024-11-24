@@ -1,14 +1,14 @@
 // db/addUser.js
-import { emails } from './db/emailSchema'; // Importa el esquema
-import { emailsDb } from './db/emailsDb';   // Importa la conexión a la base de datos
+import { emails, email } from './db/emailSchema'; // Importa el esquema y el tipo inferido
+import { emailsDb } from './db/emailsDb';         // Importa la conexión a la base de datos
 
-export async function addUser(email: string, name: string, source: string = "youtube-image-generator") {
+export async function addUser(userData: Partial<email>) {
   try {
     // Inserta el nuevo registro en la tabla `emails`
     const result = await emailsDb.insert(emails).values({
-      email,
-      name,   // Guarda el nombre del usuario
-      source, // Usará el valor por defecto si no se proporciona uno
+      email: userData.email!,
+      name: userData.name!,
+      source: userData.source ?? "youtube-image-generator",
     });
 
     console.log("Usuario añadido con éxito:", result);
@@ -18,4 +18,3 @@ export async function addUser(email: string, name: string, source: string = "you
     throw new Error("No se pudo añadir el usuario a la base de datos.");
   }
 }
-

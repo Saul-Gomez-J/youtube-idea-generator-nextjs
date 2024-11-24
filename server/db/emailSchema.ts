@@ -8,3 +8,5 @@ export const emails = pgTable('emails', {
   source: varchar('source', { length: 50 }).notNull(), // Campo para el nombre de la aplicación
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+export type email = typeof emails.$inferSelect;
