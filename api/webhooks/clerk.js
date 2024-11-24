@@ -1,34 +1,82 @@
+// pages/api/webhooks/clerk.js
 import { Webhook } from 'svix';
-import { WebhookEvent } from '@clerk/nextjs/server';
+import { buffer } from 'micro';
+import { addUser } from '../../../server/addUser';
 
-export default async function handler(req, res) {
-  const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+/**
+ * Configuration to disable the default body parser
+ * This is required for webhook verification
+ */
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-  const headerPayload = req.headers;
-  const payload = await req.body;
+/**
+ * Extracts user data from the webhook event
+ * @param {Object} eventData - The event data from Clerk
+ * @returns {Object} Extracted user information
+ */
+const extractUserData = (eventData) => {
+  const { email_addresses, first_name, last_name } = eventData;
+  const userEmail = email_addresses?.[0]?.email_address ?? '';
+  const firstName = first_name ?? '';
+  const lastName = last_name ?? '';
+  const userName = `${firstName} ${lastName}`.trim();
 
-  const webhook = new Webhook(WEBHOOK_SECRET);
+  return { userEmail, userName };
+};
+
+/**
+ * Webhook handler for Clerk events
+ * @param {import('next').NextApiRequest} req
+ * @param {import('next').NextApiResponse} res
+ */
+const handler = async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method Not Allowed' });
+  }
+
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    console.error('WEBHOOK_SECRET is not defined');
+    return res.status(500).json({ message: 'Server configuration error' });
+  }
+
+  const svixWebhook = new Webhook(webhookSecret);
   let event;
 
   try {
-    event = webhook.verify(JSON.stringify(payload), headerPayload);
+    const rawBody = await buffer(req);
+    const payload = rawBody.toString();
+    const svixHeaders = req.headers;
+
+    event = svixWebhook.verify(payload, svixHeaders);
   } catch (err) {
-    return res.status(400).json({ message: err.message });
+    console.error('Webhook verification failed:', err.message);
+    return res.status(400).json({ message: 'Invalid webhook signature' });
   }
 
-  const { id, email_addresses, ...attributes } = event.data;
-
-  // Aquí es donde enviarías el correo electrónico a tu base de datos
   if (event.type === 'user.created') {
-    const userEmail = email_addresses[0].email_address;
-    await saveEmailToDatabase(userEmail);
+    const { userEmail, userName } = extractUserData(event.data);
+
+    if (!userEmail) {
+      console.error('No valid email provided');
+      return res.status(400).json({ message: 'Invalid user email' });
+    }
+
+    try {
+      await addUser(userEmail, userName);
+      console.log('User saved successfully:', { email: userEmail, name: userName });
+    } catch (err) {
+      console.error('Database error:', err.message);
+      return res.status(500).json({ message: 'Internal Server Error' });
+    }
   }
 
-  res.status(200).json({ message: 'Webhook received' });
-}
+  return res.status(200).json({ message: 'Webhook processed successfully' });
+};
 
-async function saveEmailToDatabase(email) {
-  // Implementa aquí la lógica para guardar el email en tu base de datos
-  // Por ejemplo:
-  // await db.collection('users').insertOne({ email });
-}
+export default handler;
