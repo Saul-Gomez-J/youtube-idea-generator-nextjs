@@ -39,7 +39,7 @@ export const YouTubeChannels = pgTable("youtube_channels", {
 export const Users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   clerkUserId: varchar("clerk_user_id", { length: 100 }).unique().notNull(),
-  hasExecutedTrial: boolean("has_executed_trial").default(false),
+  hasExecutedTrial: boolean("has_executed_trial").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

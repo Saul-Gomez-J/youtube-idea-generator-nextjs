@@ -65,3 +65,34 @@ export const markTrialAsExecuted = async (): Promise<void> => {
   }
 };
 
+export const addUserIfNotExists = async (): Promise<void> => {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("User not authenticated");
+  }
+
+  // Check if the user already exists
+  const existingUser = await db
+    .select()
+    .from(Users)
+    .where(eq(Users.clerkUserId, userId))
+    .limit(1);
+
+  if (existingUser.length === 0) {
+    // Insert the user if it doesn't exist
+    await db
+      .insert(Users)
+      .values({
+        clerkUserId: userId,
+        // If you want to store the email, uncomment the following line:
+        // email: email,
+      })
+      .execute();
+
+    console.log(`User ${userId} created in the database.`);
+  } else {
+    console.log(`User ${userId} already exists in the database.`);
+  }
+};
+

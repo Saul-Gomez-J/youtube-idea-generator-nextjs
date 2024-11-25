@@ -1,6 +1,6 @@
 "use client";
 import { trialUsed } from "@/server/queries";
-import{ markTrialAsExecuted } from "@/server/mutations";
+import{ markTrialAsExecuted, addUserIfNotExists } from "@/server/mutations";
 import { useState, useEffect, useRef } from "react";
 import { Idea } from "@/server/db/schema";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,7 @@ export default function IdeaList({ initialIdeas }: Props) {
       });
     } else {
       console.log("Starting idea generation...");
+      await addUserIfNotExists();
       await kickoffIdeaGeneration();
       console.log("Idea generation initiated");
       

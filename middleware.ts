@@ -2,6 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { Users } from "./server/db/schema";
 import { db } from "./server/db/drizzle"; 
+import { addUserIfNotExists } from "./server/mutations"
 
 const isPublicRoute = createRouteMatcher(["/", "/sign-in", "/politicas-privacidad", "/terminos-y-condiciones" ]);
 
@@ -9,25 +10,19 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId, redirectToSignIn } = await auth();
 
   if (!isPublicRoute(req) && !userId) {
+    console.log("ESTA EJECUTANDOSE EL MIDDLEWARE")
     return redirectToSignIn();
   }
 
-  if (userId) {
+  console.log("ESTA EJECUTANDOSE EL MIDDLEWARE")
 
+  if (userId) {
     try {
-      // Intentar insertar el usuario. Si ya existe, no hacer nada.
-      await db
-        .insert(Users)
-        .values({
-          clerkUserId: userId,
-          // Si deseas almacenar el email, descomenta la siguiente línea:
-          // email: email,
-        })
-        .onConflictDoNothing()
-        .execute();
+      // Ensure the user is added to the database
+      await addUserIfNotExists();
     } catch (error) {
-      console.error("Error al sincronizar el usuario en el middleware:", error);
-      // Opcional: Puedes manejar el error de otra manera si lo prefieres
+      console.error("Error synchronizing user in the middleware:", error);
+      // Optional: You can handle the error in a different way if you prefer
     }
   }
 
