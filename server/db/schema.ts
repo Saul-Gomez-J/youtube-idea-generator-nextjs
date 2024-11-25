@@ -36,6 +36,14 @@ export const YouTubeChannels = pgTable("youtube_channels", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const Users = pgTable("users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clerkUserId: varchar("clerk_user_id", { length: 100 }).unique().notNull(),
+  hasExecutedTrial: boolean("has_executed_trial").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const VideoComments = pgTable("video_comments", {
   id: uuid("id").defaultRandom().primaryKey(),
   videoId: uuid("video_id").notNull(),

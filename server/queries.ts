@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import {
   Idea,
   Ideas,
+  Users,
   Video,
   VideoComments,
   Videos,
@@ -80,4 +81,27 @@ export const getIdeasForUser = async (): Promise<Idea[]> => {
     .from(Ideas)
     .where(eq(Ideas.userId, userId))
     .orderBy(desc(Ideas.createdAt));
+};
+
+export const trialUsed = async (): Promise<boolean> => {
+  // Autentica al usuario y obtiene el userId de Clerk
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("Usuario no autenticado");
+  }
+
+  // Consulta la tabla Users para obtener el registro del usuario actual
+  const user = await db
+    .select()
+    .from(Users)
+    .where(eq(Users.clerkUserId, userId))
+    .limit(1);
+
+  if (user.length === 0) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  // Devuelve el valor de hasExecutedTrial
+  return user[0].hasExecutedTrial!;
 };

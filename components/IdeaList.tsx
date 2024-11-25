@@ -1,5 +1,6 @@
 "use client";
-
+import { trialUsed } from "@/server/queries";
+import{ markTrialAsExecuted } from "@/server/mutations";
 import { useState, useEffect, useRef } from "react";
 import { Idea } from "@/server/db/schema";
 import { Button } from "@/components/ui/button";
@@ -59,22 +60,41 @@ export default function IdeaList({ initialIdeas }: Props) {
   const prevHasUnprocessedJobs = useRef<boolean>(false);
 
   const handleGenerate = async () => {
-    setIsGenerating(true); // Start loading indicator
+    setIsGenerating(true); // Inicia el indicador de carga
     try {
-      await kickoffIdeaGeneration();
-      toast({
-        title: "Generating ideas...",
-        description:
-          "We are processing your comments to generate new ideas. This may take a few moments.",
-      });
+      // Verifica si el usuario ya ha utilizado su ejecución de prueba
+      const hasUsedTrial = await trialUsed();
+  
+      if (hasUsedTrial) {
+        // Si el usuario ya ha utilizado la prueba, muestra un toast informativo
+        toast({
+          title: "Prueba ya utilizada",
+          description: "Ya has utilizado tu generación de prueba.",
+          variant: "default", // Puedes ajustar el estilo según tu biblioteca de toast
+        });
+      } else {
+        // Si el usuario no ha utilizado la prueba, procede a generar ideas
+        await kickoffIdeaGeneration();
+        
+        // Muestra un toast indicando que se están generando ideas
+        toast({
+          title: "Generando ideas...",
+          description:
+            "Estamos procesando tus comentarios para generar nuevas ideas. Esto puede tomar unos momentos.",
+        });
+  
+        // Marca la prueba como ejecutada actualizando el estado del usuario
+        await markTrialAsExecuted();
+      }
     } catch (error) {
-      console.error("Error initiating idea generation:", error);
+      console.error("Error al iniciar la generación de ideas:", error);
       toast({
         title: "Error",
-        description: "Failed to initiate idea generation. Please try again.",
+        description: "No se pudo iniciar la generación de ideas. Por favor, intenta nuevamente.",
         variant: "destructive",
       });
-      setIsGenerating(false); // Stop loading if there's an error
+    } finally {
+      setIsGenerating(false); // Detiene el indicador de carga independientemente del resultado
     }
   };
 
