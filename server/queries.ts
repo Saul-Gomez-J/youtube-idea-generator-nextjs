@@ -84,24 +84,35 @@ export const getIdeasForUser = async (): Promise<Idea[]> => {
 };
 
 export const trialUsed = async (): Promise<boolean> => {
-  // Autentica al usuario y obtiene el userId de Clerk
-  const { userId } = await auth();
+  try {
+    // Autentica al usuario y obtiene el userId de Clerk
+    const { userId } = await auth();
 
-  if (!userId) {
-    throw new Error("Usuario no autenticado");
+    if (!userId) {
+      // Retorna false si el usuario no está autenticado
+      return false;
+    }
+
+    // Consulta la tabla Users para obtener el registro del usuario actual
+    const user = await db
+      .select()
+      .from(Users)
+      .where(eq(Users.clerkUserId, userId))
+      .limit(1)
+      .then(records => records[0] || null); // Obtiene el primer registro o null
+
+    if (!user) {
+      // Retorna false si el registro del usuario no existe
+      return false;
+    }
+
+    // Retorna el valor de hasExecutedTrial como booleano
+    return Boolean(user.hasExecutedTrial);
+  } catch (error) {
+    console.error("Error en trialUsed:", error);
+    // Retorna false en caso de cualquier error durante la ejecución
+    return false;
   }
-
-  // Consulta la tabla Users para obtener el registro del usuario actual
-  const user = await db
-    .select()
-    .from(Users)
-    .where(eq(Users.clerkUserId, userId))
-    .limit(1);
-
-  if (user.length === 0) {
-    throw new Error("Usuario no encontrado");
-  }
-
-  // Devuelve el valor de hasExecutedTrial
-  return user[0].hasExecutedTrial!;
 };
+
+

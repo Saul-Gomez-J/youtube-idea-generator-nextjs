@@ -50,7 +50,7 @@ export const markTrialAsExecuted = async (): Promise<void> => {
     const updateResult = await db
       .update(Users)
       .set({ hasExecutedTrial: true, updatedAt: new Date() })
-      .where(eq(Users.clerkUserId, userId))
+      .where(eq(Users.userId, userId))
       .execute();
 
     // Opcional: Verificar si la actualización afectó a alguna fila
@@ -76,7 +76,7 @@ export const addUserIfNotExists = async (): Promise<void> => {
   const existingUser = await db
     .select()
     .from(Users)
-    .where(eq(Users.clerkUserId, userId))
+    .where(eq(Users.userId, userId))
     .limit(1);
 
   if (existingUser.length === 0) {
@@ -84,7 +84,7 @@ export const addUserIfNotExists = async (): Promise<void> => {
     await db
       .insert(Users)
       .values({
-        clerkUserId: userId,
+        userId: userId,
         // If you want to store the email, uncomment the following line:
         // email: email,
       })

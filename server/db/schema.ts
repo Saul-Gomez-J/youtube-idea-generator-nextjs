@@ -38,7 +38,7 @@ export const YouTubeChannels = pgTable("youtube_channels", {
 
 export const Users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
-  clerkUserId: varchar("clerk_user_id", { length: 100 }).unique().notNull(),
+  userId: varchar("clerk_user_id", { length: 100 }).unique().notNull(),
   hasExecutedTrial: boolean("has_executed_trial").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -90,6 +90,10 @@ export const VideoRelations = relations(Videos, ({ many }) => ({
   comments: many(VideoComments),
   ideas: many(Ideas),
 }));
+
+export const UsersRelations = relations(Users, ({ many })=> ({
+  videos: many(Videos),
+}))
 
 export const VideoCommentRelations = relations(VideoComments, ({ one }) => ({
   video: one(Videos, {
