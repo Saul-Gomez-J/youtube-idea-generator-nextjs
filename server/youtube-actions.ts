@@ -33,6 +33,20 @@ async function getChannelId(channelName: string): Promise<string | null> {
   }
 }
 
+
+export const removeVideoForUser = async (id: string): Promise<void> => {
+  const { userId } = await auth();
+
+  if (!userId) {
+    throw new Error("Usuario no autenticado");
+  }
+
+  await db
+    .delete(Videos)
+    .where(and(eq(Videos.id, id), eq(Videos.userId, userId)));
+};
+
+
 async function fetchLatestVideosForChannel(channelId: string): Promise<string[]> {
   try {
     const response = await youtube.search.list({

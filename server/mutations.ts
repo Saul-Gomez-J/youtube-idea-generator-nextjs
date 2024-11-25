@@ -37,18 +37,3 @@ export const removeChannelForUser = async (id: string): Promise<void> => {
     .where(and(eq(YouTubeChannels.id, id), eq(YouTubeChannels.userId, userId)));
 };
 
-// ... existing code ...
-
-export const removeVideoForUser = async (id: string): Promise<void> => {
-  const { userId } = await auth();
-
-  if (!userId) {
-    throw new Error("Usuario no autenticado");
-  }
-
-  await db
-    .delete(Videos)
-    .where(and(eq(Videos.id, id), eq(Videos.userId, userId)));
-};
-
-// ... existing code ...

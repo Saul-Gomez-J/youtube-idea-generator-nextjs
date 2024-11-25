@@ -2,77 +2,77 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Video } from "@/server/db/schema";
 import { Button } from "@/components/ui/button";
-import { scrapeVideos } from "@/server/youtube-actions";
 import { useToast } from "@/hooks/use-toast";
 import { formatCount } from "@/lib/utils";
 import { Loader2, TvMinimal, X } from "lucide-react";
-import { removeVideoForUser } from "@/server/mutations";
+
+// Importamos las acciones del servidor como funciones
+import { scrapeVideos, removeVideoForUser } from "@/server/youtube-actions";
 
 export default function VideoList({
   initialVideos,
 }: {
   initialVideos: Video[];
 }) {
-  const [isScraping, setIsScraping] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [videos, setVideos] = useState(initialVideos);
   const { toast } = useToast();
 
-  const handleScrape = async () => {
-    setIsScraping(true);
-    try {
-    const newVideos = await scrapeVideos();
-    setVideos((prevVideos) => [...newVideos, ...prevVideos]);
-      toast({
-        title: "Scrape Successful",
-        description: `Scraped ${newVideos.length} new videos`,
-      });
-    } catch (error) {
-      console.error("Error scraping videos:", error);
-      let errorMessage = "An unknown error occurred";
+  const handleScrape = () => {
+    startTransition(async () => {
+      try {
+        const newVideos = await scrapeVideos();
+        setVideos((prevVideos) => [...newVideos, ...prevVideos]);
+        toast({
+          title: "Scrape Successful",
+          description: `Scraped ${newVideos.length} new videos`,
+        });
+      } catch (error) {
+        console.error("Error scraping videos:", error);
+        let errorMessage = "An unknown error occurred";
 
-      if (error instanceof Error) {
-        if (error.message.includes("No channels found for the user")) {
-          errorMessage =
-            "Please add YouTube channels first by clicking settings in the top right.";
-        } else {
-          errorMessage = error.message;
+        if (error instanceof Error) {
+          if (error.message.includes("No channels found for the user")) {
+            errorMessage =
+              "Please add YouTube channels first by clicking settings in the top right.";
+          } else {
+            errorMessage = error.message;
+          }
         }
+
+        toast({
+          title: "Scrape Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
-
-      console.log("errorMessage", errorMessage);
-      toast({
-        title: "Scrape Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setIsScraping(false);
-    }
+    });
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.preventDefault(); // Previene la navegación del Link
-    try {
-      await removeVideoForUser(id);
-      setVideos((prevVideos) => prevVideos.filter(video => video.id !== id));
-      toast({
-        title: "Video eliminado",
-        description: "El video ha sido eliminado exitosamente",
-      });
-    } catch (error) {
-      console.error( "Error al eliminar el video ", error);
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar el video",
-        variant: "destructive",
-      });
-    }
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    startTransition(async () => {
+      try {
+        await removeVideoForUser(id);
+        setVideos((prevVideos) => prevVideos.filter(video => video.id !== id));
+        toast({
+          title: "Video eliminado",
+          description: "El video ha sido eliminado exitosamente",
+        });
+      } catch (error) {
+        console.error("Error al eliminar el video:", error);
+        toast({
+          title: "Error",
+          description: "No se pudo eliminar el video",
+          variant: "destructive",
+        });
+      }
+    });
   };
-
 
   useEffect(() => {
     setVideos(initialVideos);
@@ -91,10 +91,10 @@ export default function VideoList({
         </p>
         <Button
           onClick={handleScrape}
-          disabled={isScraping}
+          disabled={isPending}
           className="bg-red-500 hover:bg-red-600 transition-all rounded-lg text-md font-semibold px-6 py-5"
         >
-          {isScraping ? (
+          {isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Realizando scraping...
@@ -113,10 +113,10 @@ export default function VideoList({
         <h1 className="text-3xl font-bold">Videos</h1>
         <Button
           onClick={handleScrape}
-          disabled={isScraping}
+          disabled={isPending}
           className="bg-red-500 hover:bg-red-600 transition-all rounded-lg text-md font-semibold px-6 py-3"
         >
-          {isScraping ? "Scraping..." : "Scrape"}
+          {isPending ? "Scraping..." : "Scrape"}
         </Button>
       </div>
       <div className="grid grid-cols-3 gap-6">
@@ -173,5 +173,5 @@ export default function VideoList({
         ))}
       </div>
     </>
-);
+  );
 }
