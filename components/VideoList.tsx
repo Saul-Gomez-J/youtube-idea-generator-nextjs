@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { formatCount } from "@/lib/utils";
 import { Loader2, TvMinimal, X } from "lucide-react";
-import { addUserIfNotExists } from "@/server/mutations"
 
 // Importamos las acciones del servidor como funciones
 import { scrapeVideos, removeVideoForUser } from "@/server/youtube-actions";
