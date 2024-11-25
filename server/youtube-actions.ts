@@ -15,7 +15,30 @@ import { google, youtube_v3 } from "googleapis";
 const youtube = google.youtube({
   version: "v3",
   auth: process.env.YOUTUBE_API_KEY,
+  timeout: 60000, // 60 segundos
 });
+
+const withTimeout = async <T>(
+  promise: Promise<T>,
+  timeoutMs: number
+): Promise<T> => {
+  let timeoutHandle: NodeJS.Timeout;
+  
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(() => {
+      reject(new Error(`Operation timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    const result = await Promise.race([promise, timeoutPromise]);
+    clearTimeout(timeoutHandle!);
+    return result;
+  } catch (error) {
+    clearTimeout(timeoutHandle!);
+    throw error;
+  }
+};
 
 async function getChannelId(channelName: string): Promise<string | null> {
   try {
@@ -166,108 +189,164 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
   return chunks;
 }
 
-export async function scrapeVideos() {
-  const { userId } = await auth();
+export async function scrapeVideos(): Promise<Video[]> {
+  try {
+    const { userId } = await auth();
 
-  if (!userId) {
-    throw new Error("User not authenticated");
-  }
+    if (!userId) {
+      throw new Error("Usuario no autenticado");
+    }
 
-  const channels = await db
-    .select()
-    .from(YouTubeChannels)
-    .where(eq(YouTubeChannels.userId, userId));
+    const channels = await db
+      .select()
+      .from(YouTubeChannels)
+      .where(eq(YouTubeChannels.userId, userId));
 
-  if (channels.length === 0) {
-    throw new Error("No channels found for the user");
-  }
+    if (!channels || channels.length === 0) {
+      throw new Error("No se encontraron canales para el usuario");
+    }
 
-  const newVideos: Video[] = [];
-  const newComments: VideoComment[] = [];
+    const newVideos: Video[] = [];
+    const newComments: VideoComment[] = [];
 
-  for (const channel of channels) {
-    if (!channel.channelId) {
-      const channelId = await getChannelId(channel.name);
+    for (const channel of channels) {
+      if (!channel.channelId) {
+        const channelId = await withTimeout(
+          getChannelId(channel.name),
+          30000
+        );
 
-      if (!channelId) {
-        console.error(`Could not find channel ID for ${channel.name}`);
+        if (!channelId) {
+          console.error(`No se pudo encontrar el ID del canal ${channel.name}`);
+          continue;
+        }
+
+        await db
+          .update(YouTubeChannels)
+          .set({ 
+            channelId, 
+            updatedAt: new Date() 
+          })
+          .where(
+            and(
+              eq(YouTubeChannels.id, channel.id),
+              eq(YouTubeChannels.userId, userId)
+            )
+          );
+
+        channel.channelId = channelId;
+      }
+
+      const videoIds = await withTimeout(
+        fetchLatestVideosForChannel(channel.channelId),
+        30000
+      );
+
+      if (videoIds.length === 0) {
         continue;
       }
 
-      await db
-        .update(YouTubeChannels)
-        .set({ channelId, updatedAt: new Date() })
-        .where(
-          and(
-            eq(YouTubeChannels.id, channel.id),
-            eq(YouTubeChannels.userId, userId)
-          )
-        );
+      const videoDetails = await withTimeout(
+        fetchVideoDetails(videoIds),
+        30000
+      );
 
-      channel.channelId = channelId;
+      await Promise.all(
+        videoDetails.map(async (video) => {
+          try {
+            const existingVideo = await db
+              .select()
+              .from(Videos)
+              .where(
+                and(
+                  eq(Videos.videoId, video.id.videoId),
+                  eq(Videos.userId, userId)
+                )
+              )
+              .limit(1);
+
+            let videoId: string;
+
+            if (existingVideo.length === 0) {
+              const newVideo = {
+                videoId: video.id.videoId,
+                title: video.snippet.title ?? '',
+                description: video.snippet.description ?? '',
+                publishedAt: new Date(video.snippet.publishedAt ?? new Date()),
+                thumbnailUrl: getBestThumbnail(video.snippet.thumbnails ?? {}),
+                channelId: channel.channelId!,
+                channelTitle: video.snippet.channelTitle ?? '',
+                userId,
+                viewCount: parseInt(video.statistics.viewCount ?? '0', 10),
+                likeCount: parseInt(video.statistics.likeCount ?? '0', 10),
+                dislikeCount: parseInt(video.statistics.dislikeCount ?? '0', 10),
+                commentCount: parseInt(video.statistics.commentCount ?? '0', 10),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              };
+
+              const [insertedVideo] = await db
+                .insert(Videos)
+                .values(newVideo)
+                .returning();
+
+              newVideos.push(insertedVideo);
+              videoId = insertedVideo.id;
+            } else {
+              videoId = existingVideo[0].id;
+            }
+
+            // Obtener y procesar comentarios solo para videos nuevos
+            if (!existingVideo.length) {
+              const comments = await withTimeout(
+                fetchVideoComments(video.id.videoId),
+                30000
+              );
+
+              await Promise.all(
+                comments.map(async (comment) => {
+                  try {
+                    const newComment = {
+                      videoId,
+                      userId,
+                      commentText: comment.snippet.textDisplay ?? '',
+                      likeCount: parseInt(`${comment.snippet.likeCount ?? 0}`, 10),
+                      dislikeCount: 0,
+                      publishedAt: new Date(comment.snippet.publishedAt ?? new Date()),
+                      createdAt: new Date(),
+                      updatedAt: new Date(),
+                    };
+
+                    const [insertedComment] = await db
+                      .insert(VideoComments)
+                      .values(newComment)
+                      .returning();
+
+                    newComments.push(insertedComment);
+                  } catch (error) {
+                    console.error(
+                      `Error al insertar comentario para el video ${videoId}:`,
+                      error
+                    );
+                  }
+                })
+              );
+            }
+          } catch (error) {
+            console.error(
+              `Error al procesar el video ${video.id.videoId}:`,
+              error
+            );
+          }
+        })
+      );
     }
 
-    const videoIds = await fetchLatestVideosForChannel(channel.channelId);
-    const videoDetails = await fetchVideoDetails(videoIds);
-
-    for (const video of videoDetails) {
-      const existingVideo = await db
-        .select()
-        .from(Videos)
-        .where(
-          and(eq(Videos.videoId, video.id.videoId), eq(Videos.userId, userId))
-        )
-        .limit(1);
-
-      let videoId: string;
-
-      if (existingVideo.length === 0) {
-        const newVideo = {
-          videoId: video.id.videoId,
-          title: video.snippet.title!,
-          description: video.snippet.description!,
-          publishedAt: new Date(video.snippet.publishedAt!),
-          thumbnailUrl: getBestThumbnail(video.snippet.thumbnails!),
-          channelId: channel.channelId,
-          channelTitle: video.snippet.channelTitle!,
-          userId,
-          viewCount: parseInt(video.statistics.viewCount || "0", 10),
-          likeCount: parseInt(video.statistics.likeCount || "0", 10),
-          dislikeCount: parseInt(video.statistics.dislikeCount || "0", 10),
-          commentCount: parseInt(video.statistics.commentCount || "0", 10),
-        };
-
-        const [insertedVideo] = await db
-          .insert(Videos)
-          .values(newVideo)
-          .returning();
-        newVideos.push(insertedVideo);
-        videoId = insertedVideo.id;
-      } else {
-        videoId = existingVideo[0].id;
-      }
-
-      const comments = await fetchVideoComments(video.id.videoId);
-      for (const comment of comments) {
-        const newComment = {
-          videoId,
-          userId,
-          commentText: comment.snippet.textDisplay!,
-          likeCount: parseInt(`${comment.snippet.likeCount || "0"}`, 10),
-          dislikeCount: 0,
-          publishedAt: new Date(comment.snippet.publishedAt!),
-        };
-
-        const [insertedComment] = await db
-          .insert(VideoComments)
-          .values(newComment)
-          .returning();
-        newComments.push(insertedComment);
-      }
-    }
+    return newVideos;
+  } catch (error) {
+    console.error("Error en scrapeVideos:", error);
+    throw error;
   }
-
-  return newVideos;
 }
 
 export async function updateVideoStatistics() {
