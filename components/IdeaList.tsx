@@ -60,43 +60,43 @@ export default function IdeaList({ initialIdeas }: Props) {
   const prevHasUnprocessedJobs = useRef<boolean>(false);
 
   const handleGenerate = async () => {
-    setIsGenerating(true); // Inicia el indicador de carga
-    try {
-      // Verifica si el usuario ya ha utilizado su ejecución de prueba
-      const hasUsedTrial = await trialUsed();
-  
-      if (hasUsedTrial) {
-        // Si el usuario ya ha utilizado la prueba, muestra un toast informativo
-        toast({
-          title: "Prueba ya utilizada",
-          description: "Ya has utilizado tu generación de prueba.",
-          variant: "default", // Puedes ajustar el estilo según tu biblioteca de toast
-        });
-      } else {
-        // Si el usuario no ha utilizado la prueba, procede a generar ideas
-        await kickoffIdeaGeneration();
-        
-        // Muestra un toast indicando que se están generando ideas
-        toast({
-          title: "Generando ideas...",
-          description:
-            "Estamos procesando tus comentarios para generar nuevas ideas. Esto puede tomar unos momentos.",
-        });
-  
-        // Marca la prueba como ejecutada actualizando el estado del usuario
-        await markTrialAsExecuted();
-      }
-    } catch (error) {
-      console.error("Error al iniciar la generación de ideas:", error);
+  setIsGenerating(true);
+  try {
+    console.log("Checking trial status...");
+    const hasUsedTrial = await trialUsed();
+    console.log("Trial used status:", hasUsedTrial);
+
+    if (hasUsedTrial) {
+      console.log("Trial already used");
       toast({
-        title: "Error",
-        description: "No se pudo iniciar la generación de ideas. Por favor, intenta nuevamente.",
-        variant: "destructive",
+        title: "Prueba ya utilizada",
+        description: "Ya has utilizado tu generación de prueba.",
+        variant: "default",
       });
-    } finally {
-      setIsGenerating(false); // Detiene el indicador de carga independientemente del resultado
+    } else {
+      console.log("Starting idea generation...");
+      await kickoffIdeaGeneration();
+      console.log("Idea generation initiated");
+      
+      toast({
+        title: "Generando ideas...",
+        description: "Estamos procesando tus comentarios para generar nuevas ideas. Esto puede tomar unos momentos.",
+      });
+
+      await markTrialAsExecuted();
+      console.log("Trial marked as executed");
     }
-  };
+  } catch (error) {
+    console.error("Complete error details:", error);
+    toast({
+      title: "Error Detallado",
+      description: error instanceof Error ? error.message : "Error desconocido",
+      variant: "destructive",
+    });
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   // Polling function for job state
   useEffect(() => {
