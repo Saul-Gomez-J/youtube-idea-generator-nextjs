@@ -77,7 +77,7 @@ async function fetchLatestVideosForChannel(channelId: string): Promise<string[]>
       channelId: channelId,
       type: ["video"],
       order: "date",
-      maxResults: 20,
+      maxResults: 10,
     });
 
     const data: youtube_v3.Schema$SearchListResponse = response.data;
