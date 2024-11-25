@@ -97,7 +97,7 @@ export const trialUsed = async (): Promise<boolean> => {
     const user = await db
       .select()
       .from(Users)
-      .where(eq(Users.clerkUserId, userId))
+      .where(eq(Users.userId, userId))
       .limit(1)
       .then(records => records[0] || null); // Obtiene el primer registro o null
 
