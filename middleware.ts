@@ -10,20 +10,7 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId, redirectToSignIn } = await auth();
 
   if (!isPublicRoute(req) && !userId) {
-    console.log("ESTA EJECUTANDOSE EL MIDDLEWARE")
     return redirectToSignIn();
-  }
-
-  console.log("ESTA EJECUTANDOSE EL MIDDLEWARE")
-
-  if (userId) {
-    try {
-      // Ensure the user is added to the database
-      await addUserIfNotExists();
-    } catch (error) {
-      console.error("Error synchronizing user in the middleware:", error);
-      // Optional: You can handle the error in a different way if you prefer
-    }
   }
 
   return NextResponse.next();
